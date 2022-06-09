@@ -1,0 +1,175 @@
+---
+title: "code"
+author: "Gita"
+date: '2022-05-14'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# chunk options
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center",
+  comment = "#>"
+)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(scales)
+library(glue)
+library(plotly)
+library(dplyr)
+library(lubridate)
+```
+
+```{r}
+job <- read.csv("data/DS_Jobs.csv", stringsAsFactors = T)
+```
+
+
+```{r}
+str(job)
+```
+
+```{r}
+colSums(is.na(job))
+```
+
+```{r}
+job_clean <- job %>% 
+  select(-c(Job.Description, Headquarters, Revenue, job_simp, job_state, same_state, python, excel, hadoop, spark, aws, tableau, big_data, Type.of.ownership, min_salary, max_salary, seniority))
+job_clean
+```
+
+```{r}
+job_count <- job %>% 
+  group_by(Sector) %>% 
+  summarise(count_cat = n()) %>% 
+  arrange(desc(count_cat)) %>% 
+  ungroup()
+
+job_count
+```
+
+```{r}
+job_count2 <- job_count %>%
+  mutate(label = glue("Sector {Sector}
+                      Job Count: {count_cat}"))
+head(job_count2)
+```
+
+```{r}
+plot1<- ggplot(job_count2,aes(x=count_cat,y= reorder(Sector,count_cat), text = label)) +
+  geom_col(aes(fill=count_cat)) +
+  scale_fill_gradient(low = 'black', high = 'maroon') +
+  labs(title="The Most Sector Needed Data Science", x="job count", y=NULL) +
+  theme_grey() + theme(legend.position = "none")
+plot1
+```
+
+```{r}
+library (plotly)
+ggplotly(plot1, tooltip = "text")
+```
+
+```{r}
+job_age <- job_clean %>%
+  mutate(label = glue("Company Age: {company_age}
+                      Avg Salary: {avg_salary}"))
+head(job_age)
+```
+
+
+```{r}
+plot2 <- job_age %>% ggplot() + 
+    geom_point(aes(x = company_age, y = avg_salary, text = label, col = job_age$avg_salary)) +
+    labs(x = "Company Age", y = "Avg Salary",
+       title = "Company Age vs Avg Salary")
+
+plot2
+```
+
+```{r}
+
+ggplotly(plot2, tooltip = "text")
+```
+
+
+```{r}
+cor(job_clean$avg_salary, job_clean$company_age)
+```
+
+```{r}
+job_10 <- job_clean %>% 
+  filter(Industry == "Consulting") %>% 
+  group_by(Location) %>% 
+  ungroup() %>% 
+  arrange(desc(avg_salary))
+
+head(job_10, 10)
+```
+
+
+```{r}
+library(scales)
+job_10_2 <- head(job_10, 10) %>% 
+  mutate(label = glue("Industry: {Location}
+                      Average Salary: {comma(avg_salary)}"))
+
+job_10_2
+```
+
+```{r}
+plot3 <- ggplot(job_10_2, aes(x = avg_salary, y = reorder(Location, avg_salary), text = label)) +
+  geom_col(aes(fill = avg_salary)) +
+  labs(title = "Avarege Salary of Every Country",
+       x = "Avarage Salary",
+       y = NULL) +
+  scale_fill_gradient(low = "orange", high= "maroon") +
+  theme_minimal() +
+  theme(legend.position = "none") 
+  
+plot3
+```
+
+```{r}
+ggplotly(plot3, tooltip = "text")
+```
+
+
+```{r}
+job5 <- filter(.data = job_clean, Rating == "5")
+jobstyle <- job5 %>% 
+  group_by(Location)
+jobstyle
+```
+
+
+```{r}
+theme_algo2 <- theme(
+  panel.background = element_rect(fill = "White"),
+  panel.grid.major = element_line(colour = "White"),
+  panel.grid.minor = element_blank(),
+  plot.title = element_text(family = "", 
+                            size = 20, 
+                            color = "Black"))
+```
+
+```{r}
+plot4 <- jobstyle %>% 
+  ggplot(aes(fill = Location, reorder(factor(Size), Size, function(x) -length(x)),
+            text = glue(
+               "Location = {Location}"                         
+            ))) +
+  geom_bar(position = "Stack") +
+  labs(title = "Total Employee Based on Location",
+       x = "Employee", 
+       y = "Total") +
+  theme_algo2
+ggplotly(plot4, tooltip = "text")
+```
+
